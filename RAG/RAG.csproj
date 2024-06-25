@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Langchain.Core" Version="0.14.1-dev.73" />
+    <PackageReference Include="LangChain.Databases.Sqlite" Version="0.14.1-dev.73" />
+    <PackageReference Include="LangChain.DocumentLoaders.Pdf" Version="0.14.1-dev.73" />
+    <PackageReference Include="LangChain.Providers.Ollama" Version="0.14.1-dev.73" />
+    <PackageReference Include="LangChain.Splitters.CSharp" Version="0.14.1-dev.73" />
+    <PackageReference Include="Ollama" Version="1.3.2" />
+  </ItemGroup>
+
+</Project>
