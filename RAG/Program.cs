@@ -6,8 +6,8 @@ using Ollama;
 
 var provider = new OllamaProvider(options: new RequestOptions
 {
-	Stop = new[] { "\n" },
-	Temperature = 0.0f
+	Stop = new[] { "\n" }, // finish this turn and goes to next new line
+	Temperature = 0.0f // the model should be deterministic
 });
 
 var embeddingModel = new OllamaEmbeddingModel(provider, id: "all-minilm");
@@ -25,26 +25,39 @@ var vectorCollection = await vectorDatabase.AddDocumentsFromAsync<PdfPigPdfLoade
 	textSplitter: null,
 	behavior: AddDocumentsToDatabaseBehavior.JustReturnCollectionIfCollectionIsAlreadyExists);
 
-const string question = "What is Harry's Address?";
-var similarDocuments = await vectorCollection.GetSimilarDocuments(embeddingModel, question, amount: 3);
-// Use similar documents and LLM to answer the question
-var answer = await llm.GenerateAsync(
-	$"""
-     Use the following pieces of context to answer the question at the end.
-     If the answer is not in context then just say that you don't know, don't try to make up an answer.
-     Keep the answer as short as possible.
 
-     {similarDocuments.AsString()}
-
-     Question: {question}
-     Helpful Answer:
-     """).ConfigureAwait(false);
-
-Console.WriteLine($"LLM answer: {answer}");
-
-//optionally write out the vectordb similar documents
-Console.WriteLine("Similar Documents:");
-foreach (var document in similarDocuments)
+// Set up a loop for continuous interaction
+while (true)
 {
-	Console.WriteLine(document);
+	Console.Write("Ask me anything: ");
+	string userQuestion = Console.ReadLine();
+
+	if (userQuestion.ToLower() == "exit")
+	{
+		break;
+	}
+
+	var similarDocuments = await vectorCollection.GetSimilarDocuments(embeddingModel, userQuestion, amount: 1);
+
+	var response = await llm.GenerateAsync(
+		$"""
+        Use the following pieces of context to answer the question at the end.
+        If the answer is not in context then just say that you don't know, don't try to make up an answer.
+        Keep the answer as short as possible.
+
+        {similarDocuments.AsString()}
+
+        Question: {userQuestion}
+        Helpful Answer:
+        """).ConfigureAwait(false);
+
+	Console.WriteLine($"LLM answer: {response}");
+
+	// Optionally, write out the vectordb similar documents if needed for debugging
+	//Console.WriteLine("Similar Documents:");
+	//foreach (var document in similarDocuments)
+	//{
+	//	Console.WriteLine(document);
+	//}
 }
+
