@@ -7,7 +7,7 @@ using Ollama;
 var provider = new OllamaProvider(options: new RequestOptions
 {
 	Stop = new[] { "\n" }, // This option specifies the stop sequence for the model's output. Here, it stops generating text when it encounters a newline character (\n).
-	Temperature = 0.0f // Set to 0.0f, indicating that the model should provide deterministic, less varied responses, focusing on the most likely output.
+	Temperature = 0.2f // Set to 0.0f, indicating that the model should provide deterministic, less varied responses, focusing on the most likely output.
 });
 
 var embeddingModel = new OllamaEmbeddingModel(provider, id: "all-minilm");
@@ -28,9 +28,10 @@ var vectorCollection = await vectorDatabase.AddDocumentsFromAsync<PdfPigPdfLoade
 
 
 // Set up a loop for continuous interaction
+// Enhance context retrieval and handling
 while (true)
 {
-	Console.Write("Ask me anything: ");
+	Console.Write("Ask me anything or type 'exit' to stop: ");
 	string userQuestion = Console.ReadLine();
 
 	if (userQuestion.ToLower() == "exit")
@@ -38,24 +39,45 @@ while (true)
 		break;
 	}
 
-	var similarDocuments = await vectorCollection.GetSimilarDocuments(embeddingModel, userQuestion, amount: 1);
+	var similarDocuments = await vectorCollection.GetSimilarDocuments(embeddingModel, userQuestion, amount: 4); // Fetch more documents to improve context
 
-	var response = await llm.GenerateAsync(
-		$"""
-        Use the following pieces of context to answer the question at the end.
-        If the answer is not in context then just say that you don't know, don't try to make up an answer.
-        Keep the answer as short as possible.
-
-        {similarDocuments.AsString()}
+	// Check if the similarDocuments contain relevant information or not
+	if (!similarDocuments.Any())
+	{
+		// Use a general LLM for a broader range of knowledge
+		var generalResponse = await llm.GenerateAsync(
+			$"""
+        I don't have specific documents related to your question. However, based on general knowledge:
 
         Question: {userQuestion}
         Helpful Answer:
         """).ConfigureAwait(false);
 
-	Console.WriteLine($"LLM answer: {response}"); //This function call converts the documents retrieved from the vector database into a string format.
-												  //These documents are assumed to be relevant to the question and serve as context for the model to base its response on.
-												  //Question: {userQuestion}: This is where the user's question is placed. By formatting it this way, you're clearly delineating the query for the model.
-												  //Helpful Answer: This is where the model's response will be placed. The model will generate a response based on the context provided and the user's query.
+		Console.WriteLine($"General LLM answer: {generalResponse}");
+	}
+	else
+	{
+		var context = string.Join("\n\n", similarDocuments.Select(doc => doc.PageContent).Take(2)); // Top 3 documents for context
+
+		var response = await llm.GenerateAsync(
+			$"""
+        Use the following pieces of context to answer the question at the end.
+        If the answer is not in context then just say that you don't know, don't try to make up an answer.
+        Keep the answer as short as possible.
+
+        {context}
+
+        Question: {userQuestion}
+        Helpful Answer:
+        """).ConfigureAwait(false);
+
+		Console.WriteLine($"LLM answer: {response}");   //This function call converts the documents retrieved from the vector database into a string format.
+														//These documents are assumed to be relevant to the question and serve as context for the model to base its response on.
+														//Question: {userQuestion}: This is where the user's question is placed. By formatting it this way, you're clearly delineating the query for the model.
+														//Helpful Answer: This is where the model's response will be placed. The model will generate a response based on the context provided and the user's query
+	}
+
+
 
 	// Optionally, write out the vectordb similar documents if needed for debugging
 	//Console.WriteLine("Similar Documents:");
