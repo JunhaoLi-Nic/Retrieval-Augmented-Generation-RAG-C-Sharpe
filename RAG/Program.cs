@@ -3,6 +3,8 @@ using LangChain.DocumentLoaders;
 using LangChain.Providers.Ollama; 
 using LangChain.Extensions;
 using Ollama;
+using LangChain.Splitters.Text;
+
 
 
 var provider = new OllamaProvider(options: new RequestOptions
@@ -17,6 +19,9 @@ var embeddingModel = new OllamaEmbeddingModel(provider, id: "all-minilm");
 var llm = new OllamaChatModel(provider, id: "llama3");
 var vectorDatabase = new SqLiteVectorDatabase(dataSource: "vectors.db"); //This initializes a database for storing vectors. These vectors are numerical representations of text data that can be efficiently searched and compared.
 																		 //The database is stored in a file named vectors.db 
+ITextSplitter chunks = new CharacterTextSplitter(separator : "\n\n",
+	 chunkSize: 500,
+	chunkOverlap: 100);
 
 var vectorCollection = await vectorDatabase.AddDocumentsFromAsync<PdfPigPdfLoader>( // This function call adds documents to the vector database. The documents are loaded from a PDF file using the PdfPigPdfLoader class.
 	embeddingModel, // The text extracted from the PDF is converted into embeddings using the specified model (all-minilm), which allows for semantic searching of the text.	
@@ -24,7 +29,7 @@ var vectorCollection = await vectorDatabase.AddDocumentsFromAsync<PdfPigPdfLoade
 	//dimensions: 384, //for all-MiniLM- 384 dimensions
 	dataSource: DataSource.FromUrl("https://canonburyprimaryschool.co.uk/wp-content/uploads/2016/01/Joanne-K.-Rowling-Harry-Potter-Book-1-Harry-Potter-and-the-Philosophers-Stone-EnglishOnlineClub.com_.pdf"),
 	collectionName: "harrypotter", // Names the collection in the database where these documents are stored, which is useful for maintaining separate datasets within the same database.
-	textSplitter: null, // This would typically define how the text should be split into segments for processing, but it's null here, suggesting that the default splitting mechanism is used.
+	textSplitter: chunks, // This would typically define how the text should be split into segments for processing, but it's null here, suggesting that the default splitting mechanism is used.
 	behavior: AddDocumentsToDatabaseBehavior.JustReturnCollectionIfCollectionIsAlreadyExists);
 
 // Set up a loop for continuous interaction
@@ -61,11 +66,11 @@ while (true)
 
 	Console.WriteLine(similarDocuments.Any());
 
-	// Optionally, write out the vectordb similar documents if needed for debugging
-	//Console.WriteLine("Similar Documents:");
-	//foreach (var document in similarDocuments)
-	//{
-	//	Console.WriteLine(document);
-	//}
+// Optionally, write out the vectordb similar documents if needed for debugging
+	Console.WriteLine("Similar Documents:");
+	foreach (var document in similarDocuments)
+	{
+		Console.WriteLine(document);
+	}
 }
 
