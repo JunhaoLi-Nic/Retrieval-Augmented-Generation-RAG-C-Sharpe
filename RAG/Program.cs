@@ -19,7 +19,7 @@ var embeddingModel = new OllamaEmbeddingModel(provider, id: "all-minilm");
 var llm = new OllamaChatModel(provider, id: "llama3");
 var vectorDatabase = new SqLiteVectorDatabase(dataSource: "vectors.db"); //This initializes a database for storing vectors. These vectors are numerical representations of text data that can be efficiently searched and compared.
 																		 //The database is stored in a file named vectors.db 
-ITextSplitter chunks = new CharacterTextSplitter(separator : "\n\n",
+ITextSplitter chunks = new RecursiveCharacterTextSplitter(separators: new List<string> {"\n\n", "\n", " ", ""},
 	 chunkSize: 500,
 	chunkOverlap: 100);
 
